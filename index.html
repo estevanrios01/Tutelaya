@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="description" content="TutelaYa — Abogado digital gratuito para colombianos. Genera tutelas y derechos de petición en minutos."/>
+  <meta name="theme-color" content="#0F2A5E"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta property="og:title" content="TutelaYa ⚖️ — Tu abogado digital"/>
+  <meta property="og:description" content="El abogado digital más completo de Colombia. Gratis."/>
+  <title>TutelaYa ⚖️</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#0F2A5E; font-family:system-ui,sans-serif; }
+    #splash {
+      position:fixed; inset:0; background:linear-gradient(135deg,#0F2A5E,#1e40af);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      color:#fff; z-index:9999; transition:opacity .6s ease;
+    }
+    #splash .ico { font-size:56px; margin-bottom:16px; animation:bob 1.5s ease infinite; }
+    #splash .nom { font-size:26px; font-weight:800; letter-spacing:-0.5px; margin-bottom:6px; }
+    #splash .sub { font-size:14px; opacity:0.6; margin-bottom:28px; }
+    #splash .bar { width:180px; height:4px; background:rgba(255,255,255,.15); border-radius:99px; overflow:hidden; }
+    #splash .fill { height:100%; background:#fff; border-radius:99px; animation:load 3s ease forwards; }
+    @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+    @keyframes load { from{width:0} to{width:100%} }
+    #root { min-height:100vh; background:#F0F2F9; }
+  </style>
+</head>
+<body>
+  <div id="splash">
+    <div class="ico">⚖️</div>
+    <div class="nom">TutelaYa</div>
+    <div class="sub">Tu abogado digital</div>
+    <div class="bar"><div class="fill"></div></div>
+  </div>
+
+  <div id="root"></div>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" src="./TutelaYa_FINAL.jsx" data-presets="react"></script>
+
+  <script>
+    var intentos = 0;
+    function montar() {
+      intentos++;
+      if (intentos > 60) {
+        document.getElementById('splash').innerHTML =
+          '<div style="text-align:center;padding:30px"><div style="font-size:40px;margin-bottom:14px">😕</div>' +
+          '<div style="font-size:16px;font-weight:700;margin-bottom:8px">Tardó más de lo normal</div>' +
+          '<div style="font-size:13px;opacity:.7;margin-bottom:18px">Puede ser la conexión a internet</div>' +
+          '<button onclick="location.reload()" style="padding:11px 22px;background:#fff;color:#0F2A5E;border:none;' +
+          'border-radius:10px;font-weight:700;cursor:pointer;font-size:14px">🔄 Intentar de nuevo</button></div>';
+        return;
+      }
+      var App = window.TutelaYa;
+      if (App && window.ReactDOM && window.React) {
+        var splash = document.getElementById('splash');
+        splash.style.opacity = '0';
+        setTimeout(function() { splash.style.display = 'none'; }, 600);
+        ReactDOM.createRoot(document.getElementById('root')).render(
+          React.createElement(App)
+        );
+      } else {
+        setTimeout(montar, 300);
+      }
+    }
+    window.addEventListener('load', function() { setTimeout(montar, 800); });
+  </script>
+</body>
+</html>
