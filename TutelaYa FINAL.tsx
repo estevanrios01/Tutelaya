@@ -1,6 +1,45 @@
 // React hooks — disponibles via CDN (React 18 UMD)
 const { useState, useEffect, useRef, useCallback, createContext, useContext } = React;
 
+// ── CONFIGURACIÓN SUPABASE ────────────────────────────────────────────────────
+const SUPABASE_URL  = "https://cdtzfoqhnjpdjwjpmiix.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkdHpmb3FobmpwZGp3anBtaWl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDYxMjcsImV4cCI6MjA5Njc4MjEyN30.M_BNqDXgZmnvybd41uxZA0DezZaRk8QJzykx6fD9iIE";
+
+// Cliente Supabase REST (sin npm)
+const sbClient = {
+  auth: {
+    signUp: (email, pw, nombre) => fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+      method:"POST", headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY},
+      body: JSON.stringify({ email, password:pw, options:{ data:{ nombre } } })
+    }).then(r=>r.json()),
+    signIn: (email, pw) => fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method:"POST", headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY},
+      body: JSON.stringify({ email, password:pw })
+    }).then(r=>r.json()),
+    signOut: (token) => fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+      method:"POST", headers:{"Authorization":`Bearer ${token}`,"apikey":SUPABASE_ANON_KEY}
+    }),
+    me: (token) => fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers:{"Authorization":`Bearer ${token}`,"apikey":SUPABASE_ANON_KEY}
+    }).then(r=>r.json()),
+  },
+  db: (tabla, token) => ({
+    get: (cols="*", qs="") => fetch(`${SUPABASE_URL}/rest/v1/${tabla}?select=${cols}${qs}`, {
+      headers:{"Authorization":`Bearer ${token||SUPABASE_ANON_KEY}`,"apikey":SUPABASE_ANON_KEY}
+    }).then(r=>r.json()),
+    post: (data) => fetch(`${SUPABASE_URL}/rest/v1/${tabla}`, {
+      method:"POST",
+      headers:{"Authorization":`Bearer ${token||SUPABASE_ANON_KEY}`,"apikey":SUPABASE_ANON_KEY,"Content-Type":"application/json","Prefer":"return=representation"},
+      body: JSON.stringify(data)
+    }).then(r=>r.json()),
+    patch: (data, qs) => fetch(`${SUPABASE_URL}/rest/v1/${tabla}?${qs}`, {
+      method:"PATCH",
+      headers:{"Authorization":`Bearer ${token||SUPABASE_ANON_KEY}`,"apikey":SUPABASE_ANON_KEY,"Content-Type":"application/json"},
+      body: JSON.stringify(data)
+    }).then(r=>r.json()),
+  }),
+};
+
 const DB = "tutelaya_v4";
 const db = {
   load: () => { try { return JSON.parse(localStorage.getItem(DB)) || { casos:[], contador:0 }; } catch { return { casos:[], contador:0 }; } },
@@ -4806,30 +4845,47 @@ function clearUser() {
 function useAuthLocal() {
   const [user, setUser] = useState(() => loadUser());
 
-  const registrarse = (email, nombre, pw) => {
+  const registrarse = async (email, nombre, pw) => {
     if(!email || !pw) return { ok:false, error:"Completa todos los campos" };
     if(pw.length < 6) return { ok:false, error:"Mínimo 6 caracteres" };
-    const nuevo = {
-      id: `usr_${Date.now()}`,
-      email, nombre: nombre||email.split("@")[0],
-      plan: "trial",
-      trial_fin: Date.now() + 24*60*60*1000,
-      created: Date.now(),
-    };
-    saveUser(nuevo); setUser(nuevo);
-    return { ok:true };
+    try {
+      const r = await sbClient.auth.signUp(email, pw, nombre||email.split("@")[0]);
+      if(r.user || r.access_token) {
+        const token = r.access_token || r.session?.access_token;
+        const u = { id:r.user?.id||`usr_${Date.now()}`, email,
+          nombre:nombre||email.split("@")[0], plan:"trial",
+          trial_fin:Date.now()+24*60*60*1000, token, created:Date.now() };
+        saveUser(u); setUser(u);
+        return { ok:true };
+      }
+      return { ok:false, error: r.error_description||r.msg||"Error al registrarse" };
+    } catch {
+      // Fallback local si no hay conexión
+      const u = { id:`usr_${Date.now()}`, email, nombre:nombre||email.split("@")[0],
+        plan:"trial", trial_fin:Date.now()+24*60*60*1000, created:Date.now() };
+      saveUser(u); setUser(u);
+      return { ok:true };
+    }
   };
 
-  const login = (email, pw) => {
-    // Demo: cualquier credencial entra (en prod → Supabase)
-    const existente = loadUser();
-    if(existente && existente.email === email) {
-      setUser(existente); return { ok:true };
+  const login = async (email, pw) => {
+    try {
+      const r = await sbClient.auth.signIn(email, pw);
+      if(r.access_token) {
+        const u = { id:r.user?.id||`usr_${Date.now()}`, email,
+          nombre:r.user?.user_metadata?.nombre||email.split("@")[0],
+          plan:"trial", trial_fin:Date.now()+24*60*60*1000,
+          token:r.access_token, created:Date.now() };
+        saveUser(u); setUser(u);
+        return { ok:true };
+      }
+      return { ok:false, error:r.error_description||"Email o contraseña incorrectos" };
+    } catch {
+      // Fallback local
+      const existente = loadUser();
+      if(existente && existente.email === email) { setUser(existente); return { ok:true }; }
+      return { ok:false, error:"Error de conexión. Verifica tu internet." };
     }
-    // Crear sesión demo
-    const u = { id:`usr_${Date.now()}`, email, nombre:email.split("@")[0],
-      plan:"trial", trial_fin: Date.now()+24*60*60*1000, created:Date.now() };
-    saveUser(u); setUser(u); return { ok:true };
   };
 
   const logout = () => { clearUser(); setUser(null); };
