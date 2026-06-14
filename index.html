@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="description" content="Ayuda Ciudadana — Tu plataforma legal gratuita para colombianos"/>
+  <meta name="theme-color" content="#1E50C8"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <title>Ayuda Ciudadana 🤝</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:#1E50C8;font-family:system-ui,sans-serif;}
+    #splash{position:fixed;inset:0;background:linear-gradient(135deg,#1E50C8,#3D68E3);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      color:#fff;z-index:9999;transition:opacity .6s ease;}
+    .ico{font-size:56px;margin-bottom:16px;animation:bob 1.5s ease infinite;}
+    .nom{font-size:26px;font-weight:800;letter-spacing:-0.5px;margin-bottom:6px;}
+    .sub{font-size:14px;opacity:.6;margin-bottom:28px;}
+    .bar{width:200px;height:5px;background:rgba(255,255,255,.15);border-radius:99px;overflow:hidden;}
+    .fill{height:100%;background:#fff;border-radius:99px;width:0;transition:width .4s;}
+    .msg{font-size:12px;opacity:.5;margin-top:12px;}
+    @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+    #root{min-height:100vh;background:#F7F9FC;}
+  </style>
+</head>
+<body>
+  <div id="splash">
+    <div class="ico">🤝</div>
+    <div class="nom">Ayuda Ciudadana</div>
+    <div class="sub">Tu plataforma legal gratuita</div>
+    <div class="bar"><div class="fill" id="barra"></div></div>
+    <div class="msg" id="msg">Cargando...</div>
+  </div>
+  <div id="root"></div>
+
+  <script>
+    var pct=0;
+    var barra=document.getElementById('barra');
+    var msg=document.getElementById('msg');
+    var msgs=['Cargando...','Preparando la plataforma...','Casi listo...','Un momento más...'];
+    var mi=0;
+    var prog=setInterval(function(){
+      pct+=pct<70?2:pct<90?0.5:0.1;
+      if(pct>99)pct=99;
+      barra.style.width=pct+'%';
+      if(pct>25&&mi<1){mi=1;msg.textContent=msgs[1];}
+      if(pct>60&&mi<2){mi=2;msg.textContent=msgs[2];}
+      if(pct>85&&mi<3){mi=3;msg.textContent=msgs[3];}
+    },200);
+
+    var timeout=setTimeout(function(){
+      document.getElementById('splash').innerHTML=
+        '<div style="text-align:center;padding:30px">'+
+        '<div style="font-size:40px;margin-bottom:14px">😕</div>'+
+        '<div style="font-size:16px;font-weight:700;margin-bottom:8px">Tardó más de lo normal</div>'+
+        '<div style="font-size:13px;opacity:.7;margin-bottom:6px">Puede ser por conexión lenta</div>'+
+        '<div style="font-size:12px;opacity:.5;margin-bottom:18px">El servidor puede tardar hasta 60 segundos la primera vez</div>'+
+        '<button onclick="location.reload()" style="padding:11px 22px;background:#fff;color:#1E50C8;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;margin-bottom:10px;display:block;width:100%">🔄 Intentar de nuevo</button>'+
+        '<button onclick="montar()" style="padding:9px 22px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:10px;cursor:pointer;font-size:13px;display:block;width:100%">⏳ Seguir esperando</button>'+
+        '</div>';
+    }, 120000);
+
+    function montar(){
+      if(window.TutelaYa&&window.React&&window.ReactDOM){
+        clearInterval(prog);
+        clearTimeout(timeout);
+        barra.style.width='100%';
+        var s=document.getElementById('splash');
+        if(s){s.style.opacity='0';setTimeout(function(){s.style.display='none';},600);}
+        try{
+          ReactDOM.createRoot(document.getElementById('root')).render(
+            React.createElement(window.TutelaYa)
+          );
+        }catch(e){
+          document.getElementById('root').innerHTML=
+            '<div style="padding:40px;text-align:center;color:#DC2626">'+
+            '<div style="font-size:32px;margin-bottom:12px">⚠️</div>'+
+            '<div style="font-size:16px;font-weight:700;margin-bottom:8px">Error al iniciar</div>'+
+            '<div style="font-size:13px;color:#6B7280;margin-bottom:16px">'+e.message+'</div>'+
+            '<button onclick="location.reload()" style="padding:10px 20px;background:#1E50C8;color:#fff;border:none;border-radius:8px;cursor:pointer">🔄 Recargar</button>'+
+            '</div>';
+        }
+      }else{
+        setTimeout(montar,500);
+      }
+    }
+  </script>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       CONFIGURACIÓN DEL PROXY DE IA (SEGURIDAD)
+       Pega aquí la URL de tu Worker de Cloudflare (ver proxy-ia.js).
+       Mientras esté vacío, las funciones de IA no responderán (pero la
+       app no se rompe: todo lo demás funciona).
+       ════════════════════════════════════════════════════════════════ -->
+<script>
+  window.AYUDA_AI_PROXY = "https://ia-ayuda-ciudadana.geriost01.workers.dev";
+</script>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="./TutelaYa_FINAL.js"></script>
+  <script>
+    window.addEventListener('load',function(){
+      setTimeout(montar,800);
+    });
+    setInterval(function(){
+      if(window.TutelaYa&&window.React&&window.ReactDOM){
+        var root=document.getElementById('root');
+        if(root&&root.children.length===0) montar();
+      }
+    },2000);
+  </script>
+</body>
+</html>
